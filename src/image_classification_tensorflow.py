@@ -73,7 +73,7 @@ class NodeLookup(object):
         # 문자 UID로부터 인간이 읽을 수 있는 문자로의 맵핑을 로드함
         proto_as_ascii_lines = tf.gfile.GFile(uid_lookup_path).readlines()
         uid_to_human = {}
-        p = re.compile(r'[n\d]*[\s,]*')
+        p = re.compile(r'[n\d]*[\S,]*')
         
         for line in proto_as_ascii_lines:
             parsed_items = p.findall(line)
@@ -84,19 +84,22 @@ class NodeLookup(object):
         # 문자 UID 로부터 정수 node ID 데 대한 맴핑을 로드함
         node_id_to_uid={}
         proto_as_ascii = tf.gfile.GFile(label_lookup_path).readlines()
+        #print (proto_as_ascii)
         for line in proto_as_ascii:
-            if line.startswith('    target_class:'):
+            if line.startswith('  target_class:'):
                 target_class = int(line.split(': ')[1] )
-            if line.startswith('    targe_class_string:'):
+                #print ('target_class : ', target_class)
+            if line.startswith('  target_class_string:'):
                 target_class_string = line.split(': ')[1]
                 node_id_to_uid[target_class] = target_class_string[1:-2]
+               # print ('target_class_string : ', target_class_string, target_class_string[1:-2])
         # 마지막으로 정수 node ID로부터 인간이 읽을 수 있는 문자로의 맵핑을 로드
         node_id_to_name = {}
         for key, val in node_id_to_uid.items():
             if val not in uid_to_human:
                 tf.logging.fatal('Failed to locate: %s', val)
             name = uid_to_human[val]
-            node_od_to_name[key] = name
+            node_id_to_name[key] = name
         
         return node_id_to_name
     
@@ -105,7 +108,7 @@ class NodeLookup(object):
             return ''
         return self.node_lookup[node_id]
     
-def create_graph(self):
+def create_graph():
     """저장된 GraphDef 파일로부터 그래프를 생성하고 저장된 값을 리턴"""
     # Create graph from saved graph_def.pb.
     with tf.gfile.FastGFile(os.path.join(FLAGS.model_dir, 'classify_image_graph_def.pb'), 'rb') as f:
@@ -121,7 +124,7 @@ def run_inference_on_image(image):
     Returns:
         (Nothing)
     """
-    if not tf.gfile.Exits(image):
+    if not tf.gfile.Exists(image):
         tf.logging.fatal('File does not exit %s', image)
     image_data = tf.gfile.FastGFile(image, 'rb').read()
         
@@ -164,7 +167,7 @@ def maybe_download_and_extract():
             sys.stdout.write('\r>> Downloading %s %.1f%%' % (filename, float(count*block_size)/float(total_size)*100.0))
             sys.stdout.flush()
                 
-        filepath, _= urlib.request.urlretrieve(DATA_URL, filepath, _progress)
+        filepath, _= urllib.request.urlretrieve(DATA_URL, filepath, _progress)
         print()
         statinfo = os.stat(filepath)
         print('Succesfully downloaded' , filename , statinfo.st_size , 'bytes.')
@@ -182,11 +185,6 @@ def main(argv=None):
     
 if __name__ == '__main__':
     tf.app.run()
-        
-        
-    
-        
-        
         
         
         
