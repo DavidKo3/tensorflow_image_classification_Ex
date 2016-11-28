@@ -105,76 +105,86 @@ class NodeLookup(object):
             return ''
         return self.node_lookup[node_id]
     
-    def create_graph(self):
-        """저장된 GraphDef 파일로부터 그래프를 생성하고 저장된 값을 리턴"""
-        # Create graph from saved graph_def.pb.
-        with tf.gfile.FastGFile(os.path.join(FLAGS.model_dir, 'classify_image_graph_def.pb'), 'rb') as f:
-            graph_def = tf.GraphDef()
-            graph_def.ParseFromString(f.read())
-            _ = tf.import_graph_def(graph_def , name='')
+def create_graph(self):
+    """저장된 GraphDef 파일로부터 그래프를 생성하고 저장된 값을 리턴"""
+    # Create graph from saved graph_def.pb.
+    with tf.gfile.FastGFile(os.path.join(FLAGS.model_dir, 'classify_image_graph_def.pb'), 'rb') as f:
+        graph_def = tf.GraphDef()
+        graph_def.ParseFromString(f.read())
+        _ = tf.import_graph_def(graph_def , name='')
     
         
-    def run_inference_on_image(image): 
-        """ inference on images 
-        Args:
-            image: filename of image
-        Returns:
-            (Nothing)
-        """
-        if not tf.gfile.Exits(image):
-            tf.logging.fatal('File does not exit %s', image)
-        image_data = tf.gfile.FastGFile(image, 'rb').read()
+def run_inference_on_image(image): 
+    """ inference on images 
+    Args:
+        image: filename of image
+    Returns:
+        (Nothing)
+    """
+    if not tf.gfile.Exits(image):
+        tf.logging.fatal('File does not exit %s', image)
+    image_data = tf.gfile.FastGFile(image, 'rb').read()
         
-        # 저장된 GraphDef 로부터 그래프 생성
-        create_graph()
+    # 저장된 GraphDef 로부터 그래프 생성
+    create_graph()
         
-        with tf.Session() as sess:
-              # 몇 가지 유용한 텐서들:
-            # 'softmax:0' : 1000개의 레이블에 대한 정규화된 예측결과값(nomalized prediction)을 포함하고 있는 텐서
-            # 'pool_3:0': 2048개의 이미지에 대한 float 묘사를 포함하고 있는 next-to-last layer를 포함하고 있는 텐서
-            # 'DecodeJpeg/contents:0': 제공된 이미지의 JPEG 인코딩 문자를 포함하고 있는 텐서
+    with tf.Session() as sess:
+        # 몇 가지 유용한 텐서들:
+        # 'softmax:0' : 1000개의 레이블에 대한 정규화된 예측결과값(nomalized prediction)을 포함하고 있는 텐서
+        # 'pool_3:0': 2048개의 이미지에 대한 float 묘사를 포함하고 있는 next-to-last layer를 포함하고 있는 텐서
+        # 'DecodeJpeg/contents:0': 제공된 이미지의 JPEG 인코딩 문자를 포함하고 있는 텐서
               
-            # image_data 를 input으로 graph에 집어넣고 soft tensor를 실행
-            softmax_tensor = sess.graph.get_tensor_by_name('softmax:0')
-            predictions = sess.run(softmax_tensor, {'DecodeJpeg/contents:0': image_data })
-            predictions = np.squeeze(predictions)
+        # image_data 를 input으로 graph에 집어넣고 soft tensor를 실행
+        softmax_tensor = sess.graph.get_tensor_by_name('softmax:0')
+        predictions = sess.run(softmax_tensor, {'DecodeJpeg/contents:0': image_data })
+        predictions = np.squeeze(predictions)
             
-            # node ID --> 영어 단어 lookup을 생성
-            node_lookup = NodeLookup()
+        # node ID --> 영어 단어 lookup을 생성
+        node_lookup = NodeLookup()
             
-            top_k = predictions.argsort()[-FLAGS.num_top_predictions:][::-1]
-            for node_id in top_k:
-                human_string = node_lookup.id_to_string(node_id)
-                score = predictions[node_id]
-                print('%s (score = %.5f)' % (human_string, score))
+        top_k = predictions.argsort()[-FLAGS.num_top_predictions:][::-1]
+        for node_id in top_k:
+            human_string = node_lookup.id_to_string(node_id)
+            score = predictions[node_id]
+            print('%s (score = %.5f)' % (human_string, score))
                  
-    def maybe_download_and_extract():
-        """Download and extract model tar file."""
-        dest_directory = FLAGS.model_dir
-        if not os.path.exists(dest_directory):
-            os.makedirs(dest_directory)
+def maybe_download_and_extract():
+    """Download and extract model tar file."""
+    dest_directory = FLAGS.model_dir
+    if not os.path.exists(dest_directory):
+        os.makedirs(dest_directory)
         
-        filename = DATA_URL.split('/')[-1]
-        filepath = os.path.join(dest_directory, filename)
-        # added by jh
-        print ("filepath: ")
-        print (filepath)
-        if not os.path.exists(filepath):
-            def _progress(count, block_size, total_size):
-                sys.stdout.write('\r>> Downloading %s %.1f%%' % (filename, float(count*block_size)/float(total_size)*100.0))
-                sys.stdout.flush()
+    filename = DATA_URL.split('/')[-1]
+    filepath = os.path.join(dest_directory, filename)
+    # added by jh
+    print ("filepath: ")
+    print (filepath)
+    if not os.path.exists(filepath):
+        def _progress(count, block_size, total_size):
+            sys.stdout.write('\r>> Downloading %s %.1f%%' % (filename, float(count*block_size)/float(total_size)*100.0))
+            sys.stdout.flush()
                 
-            filepath, _= urlib.request.urlretrieve(DATA_URL, filepath, _progress)
-            print()
-            statinfo = os.stat(filepath)
-            print('Succesfully downloaded' , filename , statinfo.st_size , 'bytes.')
-        tarfile.open(filepath , 'r:gz').extractall(dest_directory)
+        filepath, _= urlib.request.urlretrieve(DATA_URL, filepath, _progress)
+        print()
+        statinfo = os.stat(filepath)
+        print('Succesfully downloaded' , filename , statinfo.st_size , 'bytes.')
+    tarfile.open(filepath , 'r:gz').extractall(dest_directory)
         
     
-             
+def main(argv=None):
+    # Inception-v3 모델을 다운로드하고 압출을 푼다
+    maybe_download_and_extract()
+    # Input으로 입력할 이미지를 설정
+    image = (FLAGS.image_file if FLAGS.image_file else os.path.join(FLAGS.model_dir, 'cropped_panda.jpg'))
+        
+    # input으로 입력되는 이미지에 대한 추론을 실행
+    run_inference_on_image(image)
+    
+if __name__ == '__main__':
+    tf.app.run()
         
         
-        
+    
         
         
         
